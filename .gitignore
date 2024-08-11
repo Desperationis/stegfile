@@ -22,5 +22,5 @@ Cargo.lock
 
 
 # Stegfile
-test_image.jpg
+*.jpg
 random_data_input
