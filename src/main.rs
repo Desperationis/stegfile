@@ -1,6 +1,9 @@
 use std::process::Command;
-use std::fs::File;
 use std::io::Read;
+use std::fs::{self, File};
+use std::io::{self, Write};
+use std::path::Path;
+
 
 
 fn storage_capacity(photo_path: &str) -> u64 {
@@ -70,45 +73,72 @@ fn extract_file(photo_path: &str, passphrase: &str) {
     println!("Extracted from {}", photo_path);
 }
 
-
-
-/**
- * `data_file` is path to an open file handle to the data you are splitting.
- *
- * `chunk_size` is the size to read from the stream and write to `tmp_file`
- *
- * `tmp_file`, if it exists before the call, will get deleted and overwritten.
- *
- * Returns bytes written to `tmp_file`. If returned is 0 or less than chunk_size, the stream ended.
- */ 
-fn write_next_chunk(data_file: File, chunk_size: u64, tmp_file: u64) -> u64 {
-
-    /*
-    let path = Path::new(tmp_file);
-    if path.exists() {
-        remove_file(path)?;
+fn write_data_to_file(file_path: &str, data: Vec<u8>) -> io::Result<()> {
+    let path = Path::new(file_path);
+    
+    // Create directories if they don't exist
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent)?;
+        }
     }
 
-    let mut file = File::create(tmp_file)?;
-    file.write_all(&chunk)?;
-    file.flush()?;
-    */
+    // Open the file in write mode (this will create the file if it doesn't exist)
+    let mut file = File::create(path)?;
 
-    0
+    // Write the data to the file
+    file.write_all(&data)?;
+
+    Ok(())
 }
 
+
 fn main() {
-    let test_path = "test_image.jpg";
-    let test_path_2 = "test_image_2.jpg";
     let _data_path = "random_data_input";
     let passphrase = "yourmom";
+    let mut images = Vec::new();
+    images.push("test_images/test_image.jpg");
+    images.push("test_images/test_image_2.jpg");
+    images.push("test_images/test_image_3.jpg");
 
-    storage_capacity(test_path_2);
+
+    let mut total_space_bytes: u64 = 0;
+
+    for image in &images {
+        println!("The capacity of {} is {} bytes", image, storage_capacity(image));
+        total_space_bytes += storage_capacity(image);
+    }
+    println!("The total capacity of your drive is {} bytes", total_space_bytes);
+
+
     //embed_file(test_path, _data_path, passphrase);
     //extract_file(test_path, passphrase);
     //
 
 
+    let mut file = File::open(_data_path).unwrap();
+    let mut buffer: Vec<u8> = Vec::new();
+    file.read_to_end(&mut buffer);
+
+
+    let mut scrambled_content: Vec<Vec<u8>> = Vec::new();
+    for image in &images {
+        scrambled_content.push(Vec::new());
+    }
+
+    let mut output: String = String::new();
+    let mut next_bin: usize = 0;
+    for number in buffer {
+        scrambled_content[next_bin].push(number);
+
+        next_bin += 1;
+        next_bin = next_bin % images.len();
+    }
+
+
+    /*
+     *  Read file in chunks
+     *
     let mut file = File::open(_data_path).unwrap();
     let chunk_size: usize = 8000;
     let mut chunk: Vec<u8> = Vec::with_capacity(chunk_size);
@@ -116,5 +146,5 @@ fn main() {
     println!("Wrote {} bytes to tmpfile.", n);
     let n = file.by_ref().take(chunk_size as u64).read_to_end(&mut chunk).unwrap();
     println!("Wrote {} bytes to tmpfile.", n);
-
+    */
 }
