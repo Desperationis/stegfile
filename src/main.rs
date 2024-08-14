@@ -136,6 +136,14 @@ fn main() {
     }
 
 
+
+    let mut index: usize = 0;
+    for file in scrambled_content {
+        println!("Writing to file_part_{}", index);
+        write_data_to_file(format!("file_part_{}", index).as_str(), file);
+        index += 1;
+    }
+
     /*
      *  Read file in chunks
      *
