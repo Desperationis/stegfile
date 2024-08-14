@@ -3,6 +3,7 @@ use std::io::Read;
 use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::Path;
+use tempfile::TempDir;
 
 
 
@@ -59,13 +60,15 @@ fn embed_file(photo_path: &str, embedded_path: &str, passphrase: &str) {
     println!("Embedded {} into {}", embedded_path, photo_path);
 }
 
-fn extract_file(photo_path: &str, passphrase: &str) {
+fn extract_file(photo_path: &str, output_path: &str, passphrase: &str) {
     let _output = Command::new("steghide")
             .arg("extract")
             .arg("-sf")
             .arg(photo_path)
             .arg("-p")
             .arg(passphrase)
+            .arg("-xf")
+            .arg(output_path)
             .output()
             .expect("Command failed to start");
 
@@ -93,6 +96,125 @@ fn write_data_to_file(file_path: &str, data: Vec<u8>) -> io::Result<()> {
 }
 
 
+/**
+ * Scrambles a file into pieces, and puts those pieces into separate images. For example:
+ *
+ * Input file: this is a text
+ * 
+ * If there are three images:
+ *
+ * #1: tss s
+ * #2: h  tt
+ * #3: iiae
+ *
+ * The purpose of splitting it is to pretty heavily corrupt the file if any single image were to go
+ * missing. Sure, the amount of damage depends on what type of data is being encoded, but it is
+ * much better than storing the file into huge pieces.
+ */
+fn atomizize(input_file: &str, image_paths: &Vec<&str>, passphrase: &str) {
+    // Load file in memory
+    let mut file = File::open(input_file).unwrap();
+    let mut buffer: Vec<u8> = Vec::new();
+    file.read_to_end(&mut buffer);
+
+
+    // Initialize places for scrambled memory
+    let mut scrambled_content: Vec<Vec<u8>> = Vec::new();
+    for image in image_paths {
+        scrambled_content.push(Vec::new());
+    }
+
+    // Scramble file into those buckets
+    let mut output: String = String::new();
+    let mut next_bin: usize = 0;
+    for number in buffer {
+        scrambled_content[next_bin].push(number);
+
+        next_bin += 1;
+        next_bin = next_bin % image_paths.len();
+    }
+
+    
+    let temp_dir = TempDir::new().unwrap();
+    let temp_path = temp_dir.path();
+    println!("Temporary directory path: {:?}", temp_path);
+
+    // Dump buckets into files
+    let mut index: usize = 0;
+    for file in scrambled_content {
+        println!("Writing to file_part_{}", index);
+        let file_path = temp_path.join(format!("file_part_{}", index));
+        write_data_to_file(file_path.to_str().unwrap(), file);
+        index += 1;
+    }
+
+    let mut tmp: usize = 0;
+    for image in image_paths {
+        let file_path = temp_path.join(format!("file_part_{}", tmp));
+        embed_file(image, file_path.to_str().unwrap(), passphrase);
+        tmp += 1;
+    }
+    println!("Done!");
+}
+
+
+/**
+ * Reconstructs singular file from a list of image_paths and a passphrase. It is VERY important
+ * that the order of the images in `image_paths` correspond to the file parts that were used in
+ * first construction.
+*/
+fn reconstruct(image_paths: &Vec<&str>, passphrase: &str, output_path: &str) {
+    let temp_dir = TempDir::new().unwrap();
+    let temp_path = temp_dir.path();
+    println!("Temporary directory path: {:?}", temp_path);
+
+    let mut scrambled_pieces: Vec<Vec<u8>> = Vec::new();
+    let mut total_size: usize = 0;
+    let mut total_pieces: usize = 0;
+
+    for image in image_paths {
+        // First, get the secret files from the image
+        let file_path = temp_path.join(format!("tmp_{}", total_pieces));
+        let file_path_str = file_path.to_str().unwrap();
+        extract_file(image, file_path_str, passphrase);
+    
+
+        let mut file = File::open(file_path_str).unwrap();
+        let mut piece: Vec<u8> = Vec::new();
+        file.read_to_end(&mut piece);
+
+        total_size += piece.len();
+        total_pieces += 1;
+        scrambled_pieces.push(piece);
+    }
+
+    println!("Size of all images is {}", total_size);
+    println!("There are {} images to sift through", total_pieces);
+
+    println!("Loaded all scrambled_pieces");
+
+    let mut unified_piece: Vec<u8> = vec![0; total_size];
+    println!("size of unified_piece is reserved to be {}", unified_piece.len());
+    let mut offset: usize = 0;
+    for piece in scrambled_pieces {
+
+        let mut piece_num: usize = 0;
+        println!("offset is {offset}");
+        for byte in piece {
+            unified_piece[offset + piece_num * total_pieces] = byte;
+            piece_num += 1;
+        }
+
+        offset += 1;
+    }
+
+
+    println!("Descrambled pieces into one file. Writing...");
+    write_data_to_file(output_path, unified_piece);
+}
+
+
+
 fn main() {
     let _data_path = "random_data_input";
     let passphrase = "yourmom";
@@ -110,49 +232,6 @@ fn main() {
     }
     println!("The total capacity of your drive is {} bytes", total_space_bytes);
 
-
-    //embed_file(test_path, _data_path, passphrase);
-    //extract_file(test_path, passphrase);
-    //
-
-
-    let mut file = File::open(_data_path).unwrap();
-    let mut buffer: Vec<u8> = Vec::new();
-    file.read_to_end(&mut buffer);
-
-
-    let mut scrambled_content: Vec<Vec<u8>> = Vec::new();
-    for image in &images {
-        scrambled_content.push(Vec::new());
-    }
-
-    let mut output: String = String::new();
-    let mut next_bin: usize = 0;
-    for number in buffer {
-        scrambled_content[next_bin].push(number);
-
-        next_bin += 1;
-        next_bin = next_bin % images.len();
-    }
-
-
-
-    let mut index: usize = 0;
-    for file in scrambled_content {
-        println!("Writing to file_part_{}", index);
-        write_data_to_file(format!("file_part_{}", index).as_str(), file);
-        index += 1;
-    }
-
-    /*
-     *  Read file in chunks
-     *
-    let mut file = File::open(_data_path).unwrap();
-    let chunk_size: usize = 8000;
-    let mut chunk: Vec<u8> = Vec::with_capacity(chunk_size);
-    let n = file.by_ref().take(chunk_size as u64).read_to_end(&mut chunk).unwrap();
-    println!("Wrote {} bytes to tmpfile.", n);
-    let n = file.by_ref().take(chunk_size as u64).read_to_end(&mut chunk).unwrap();
-    println!("Wrote {} bytes to tmpfile.", n);
-    */
+    atomizize(_data_path, &images, passphrase);
+    reconstruct(&images, passphrase, "deconstructed");
 }
