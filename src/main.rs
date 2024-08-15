@@ -1,7 +1,6 @@
 use std::process::Command;
 use std::io::Read;
 use std::fs::{self, File};
-use std::env;
 use std::io::{self, Write};
 use std::path::Path;
 use tempfile::TempDir;
@@ -156,7 +155,7 @@ fn atomizize(input_file: &str, image_paths: &Vec<&str>, passphrase: &str) {
     }
 
     // Scramble file into those buckets
-    let mut output: String = String::new();
+    let output: String = String::new();
     let mut next_bin: usize = 0;
     for number in buffer {
         scrambled_content[next_bin].push(number);
