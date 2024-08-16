@@ -46,7 +46,6 @@ pub fn reconstruct(image_paths: &Vec<String>, passphrase: &str, output_path: &st
         let mut piece: Vec<u8> = Vec::new();
         let _ = file.read_to_end(&mut piece);
 
-        total_size += piece.len();
         total_pieces += 1;
         scrambled_pieces.push(piece);
     }
@@ -62,7 +61,8 @@ pub fn reconstruct(image_paths: &Vec<String>, passphrase: &str, output_path: &st
 
         // Place the inner vector in the correct position in the sorted vector
         println!("This piece will go in index {}", index);
-        sorted_pieces[index] = piece;
+        sorted_pieces[index] = piece[8..].to_vec(); // Remove leading 8 bits
+        total_size += piece.len() - 8;
     }
 
 
