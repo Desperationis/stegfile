@@ -1,44 +1,14 @@
-use std::process::Command;
 use std::io::Read;
 use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::Path;
 use tempfile::TempDir;
 use std::path::PathBuf;
-use clap::{Parser, Subcommand};
-
-#[derive(Parser)]
-#[command(version, about, long_about = None)]
-struct Cli {
-    /// Optional name to operate on
-    name: Option<String>,
-
-    /// Sets a custom config file
-    #[arg(short, long, value_name = "FILE")]
-    config: Option<PathBuf>,
-
-    /// Turn debugging information on
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    debug: u8,
-
-    #[command(subcommand)]
-    command: Option<Commands>,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    /// does testing things
-    Test {
-        /// lists test values
-        #[arg(short, long)]
-        list: bool,
-    },
-}
-
+use clap::{Arg, Command, Subcommand, Parser};
 
 
 fn storage_capacity(photo_path: &str) -> u64 {
-    let _output = Command::new("steghide")
+    let _output = std::process::Command::new("steghide")
             .arg("--info")
             .arg(photo_path)
             .output()
@@ -75,7 +45,7 @@ fn storage_capacity(photo_path: &str) -> u64 {
 }
 
 fn embed_file(photo_path: &str, embedded_path: &str, passphrase: &str) {
-    let _output = Command::new("steghide")
+    let _output = std::process::Command::new("steghide")
             .arg("embed")
             .arg("-cf")
             .arg(photo_path)
@@ -91,7 +61,7 @@ fn embed_file(photo_path: &str, embedded_path: &str, passphrase: &str) {
 }
 
 fn extract_file(photo_path: &str, output_path: &str, passphrase: &str) {
-    let _output = Command::new("steghide")
+    let _output = std::process::Command::new("steghide")
             .arg("extract")
             .arg("-sf")
             .arg(photo_path)
@@ -141,7 +111,7 @@ fn write_data_to_file(file_path: &str, data: Vec<u8>) -> io::Result<()> {
  * missing. Sure, the amount of damage depends on what type of data is being encoded, but it is
  * much better than storing the file into huge pieces.
  */
-fn atomizize(input_file: &str, image_paths: &Vec<&str>, passphrase: &str) {
+fn atomizize(input_file: &str, image_paths: &Vec<String>, passphrase: &str) {
     // Load file in memory
     let mut file = File::open(input_file).unwrap();
     let mut buffer: Vec<u8> = Vec::new();
@@ -193,7 +163,7 @@ fn atomizize(input_file: &str, image_paths: &Vec<&str>, passphrase: &str) {
  * that the order of the images in `image_paths` correspond to the file parts that were used in
  * first construction.
 */
-fn reconstruct(image_paths: &Vec<&str>, passphrase: &str, output_path: &str) {
+fn reconstruct(image_paths: &Vec<String>, passphrase: &str, output_path: &str) {
     let temp_dir = TempDir::new().unwrap();
     let temp_path = temp_dir.path();
     println!("Temporary directory path: {:?}", temp_path);
@@ -245,65 +215,120 @@ fn reconstruct(image_paths: &Vec<&str>, passphrase: &str, output_path: &str) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+#[derive(Subcommand)]
+enum Commands {
+    Extract {
+        image_dir: String,
+        passphrase: String,
+        output_file: String,
+    },
+    Embed {
+        image_dir: String,
+        passphrase: String,
+        input_file: String,
+    },
+    Capacity {
+        image_dir: String,
+    },
+}
+
+#[derive(Parser)]
+#[command(version, about, long_about = None)] // Read from `Cargo.toml`
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+fn find_jpg_images(dir: &Path, images: &mut Vec<String>) {
+    if dir.is_dir() {
+        for entry in fs::read_dir(dir).expect("read_dir failed") {
+            let entry = entry.expect("entry failed");
+            let path = entry.path();
+
+            if path.is_dir() {
+                // Recursively search through the subdirectory
+                find_jpg_images(&path, images);
+            } else if path.extension().and_then(|s| s.to_str()) == Some("jpg") {
+                // If it's a JPG file, add its absolute path to the vector
+                images.push(path.canonicalize().expect("canonicalize failed").to_string_lossy().to_string());
+            }
+        }
+    }
+}
+
+
 fn main() {
     let cli = Cli::parse();
 
-    // You can check the value provided by positional arguments, or option arguments
-    if let Some(name) = cli.name.as_deref() {
-        println!("Value for name: {name}");
-    }
-
-    if let Some(config_path) = cli.config.as_deref() {
-        println!("Value for config: {}", config_path.display());
-    }
-
-    // You can see how many times a particular flag or argument occurred
-    // Note, only flags can have multiple occurrences
-    match cli.debug {
-        0 => println!("Debug mode is off"),
-        1 => println!("Debug mode is kind of on"),
-        2 => println!("Debug mode is on"),
-        _ => println!("Don't be crazy"),
-    }
-
-    // You can check for the existence of subcommands, and if found use their
-    // matches just as you would the top level cmd
     match &cli.command {
-        Some(Commands::Test { list }) => {
-            if *list {
-                println!("Printing testing lists...");
-            } else {
-                println!("Not printing testing lists...");
+        Commands::Extract {
+            image_dir,
+            passphrase,
+            output_file,
+        } => {
+            let mut images: Vec<String> = Vec::new();
+            let image_path = Path::new(image_dir);
+            find_jpg_images(image_path, &mut images);
+
+            if ! image_path.is_dir() {
+                println!("{} is not a directory. Please try again.",  image_dir);
+                std::process::exit(1);
             }
+
+            reconstruct(&images, passphrase, output_file);
+
         }
-        None => {}
+        Commands::Embed {
+            image_dir,
+            passphrase,
+            input_file,
+        } => {
+            let mut images: Vec<String> = Vec::new();
+            let image_path = Path::new(image_dir);
+            find_jpg_images(image_path, &mut images);
+
+            if ! image_path.is_dir() {
+                println!("{} is not a directory. Please try again.",  image_dir);
+                std::process::exit(1);
+            }
+
+
+            atomizize(input_file, &images, passphrase);
+        }
+
+        Commands::Capacity {
+            image_dir,
+        } => {
+            let mut total_space_bytes: u64 = 0;
+            let mut images: Vec<String> = Vec::new();
+            let image_path = Path::new(image_dir);
+            find_jpg_images(image_path, &mut images);
+
+            if ! image_path.is_dir() {
+                println!("{} is not a directory. Please try again.",  image_dir);
+                std::process::exit(1);
+            }
+
+            for image in &images {
+                println!("{}\t {}", storage_capacity(image), image);
+                total_space_bytes += storage_capacity(image);
+            }
+            println!("The total capacity of your drive is {} bytes", total_space_bytes);
+        }
     }
 
-    /*
-    let args: Vec<String> = env::args().collect();
-
-    let mode = args.next().expect("No mode given.");
-    let image_path = args.next().expect("No folder to search for images.");
-    let input_file = args.next().expect("No input file.");
-    let passphrase = args.next().expect("No passphrase");
 
 
-    let _data_path = "random_data_input";
-    let passphrase = "yourmom";
-    let mut images = Vec::new();
-    images.push("test_images/test_image.jpg");
-    images.push("test_images/test_image_2.jpg");
-    images.push("test_images/test_image_3.jpg");
-
-
-    let mut total_space_bytes: u64 = 0;
-
-    for image in &images {
-        println!("The capacity of {} is {} bytes", image, storage_capacity(image));
-        total_space_bytes += storage_capacity(image);
-    }
-    println!("The total capacity of your drive is {} bytes", total_space_bytes);
-
-    atomizize(_data_path, &images, passphrase);
-    reconstruct(&images, passphrase, "deconstructed");*/
 }
