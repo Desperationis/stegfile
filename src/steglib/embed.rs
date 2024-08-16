@@ -62,6 +62,25 @@ pub fn atomizize(input_file: &str, image_paths: &Vec<String>, passphrase: &str) 
     let temp_path = temp_dir.path();
     println!("Temporary directory path: {:?}", temp_path);
 
+
+
+    // VERY IMPORTANT: Prepend 8 bytes (64-bit, 18,446,744,073,709,551,616 possible values) to the
+    // beginning of each bucket to mark the bucket#. This is needed for reconstruction.
+    fn prepend_u64(vec: &mut Vec<u8>, value: u64) {
+        let bytes = value.to_be_bytes(); // or use to_le_bytes() for little-endian
+        vec.splice(0..0, bytes.iter().copied());
+    }
+
+    let mut index: u64 = 0;
+    for bucket in &mut scrambled_content {
+        prepend_u64(bucket, index);
+        index += 1;
+    }
+
+
+
+
+
     // Dump buckets into files
     let mut index: usize = 0;
     for file in scrambled_content {

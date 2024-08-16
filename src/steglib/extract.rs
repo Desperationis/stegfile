@@ -51,6 +51,21 @@ pub fn reconstruct(image_paths: &Vec<String>, passphrase: &str, output_path: &st
         scrambled_pieces.push(piece);
     }
 
+    // The scrambled_pieces may not necessarily be in order. Use the first 8 bytes of each image to
+    // sort correctly.
+    let mut sorted_pieces: Vec<Vec<u8>> = vec![Vec::new(); scrambled_pieces.len()];
+
+    for piece in scrambled_pieces {
+        let index = u64::from_be_bytes(
+            piece[0..8].try_into().expect("Slice with incorrect length")
+        ) as usize;
+
+        // Place the inner vector in the correct position in the sorted vector
+        println!("This piece will go in index {}", index);
+        sorted_pieces[index] = piece;
+    }
+
+
     println!("Size of all images is {}", total_size);
     println!("There are {} images to sift through", total_pieces);
 
@@ -59,7 +74,7 @@ pub fn reconstruct(image_paths: &Vec<String>, passphrase: &str, output_path: &st
     let mut unified_piece: Vec<u8> = vec![0; total_size];
     println!("size of unified_piece is reserved to be {}", unified_piece.len());
     let mut offset: usize = 0;
-    for piece in scrambled_pieces {
+    for piece in sorted_pieces {
 
         let mut piece_num: usize = 0;
         println!("offset is {offset}");

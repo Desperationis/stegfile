@@ -28,6 +28,8 @@ fn main() {
                 std::process::exit(1);
             }
 
+
+
             reconstruct(&images, passphrase, output_file);
 
         }
@@ -39,6 +41,7 @@ fn main() {
             let mut images: Vec<String> = Vec::new();
             let image_path = Path::new(image_dir);
             find_jpg_images(image_path, &mut images);
+
 
             if ! image_path.is_dir() {
                 println!("{} is not a directory. Please try again.",  image_dir);
