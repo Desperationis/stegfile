@@ -2,9 +2,12 @@
 mod steglib;
 use steglib::cli::{Cli, Commands};
 use steglib::capacity::{MulScrambledCapacity, MulFullCapacity, MulCapacity};
-use steglib::embed::atomizize;
+use steglib::split::SplitScrambled;
+use steglib::embed::mul_embed;
 use steglib::extract::reconstruct;
 use steglib::util::find_jpg_images;
+use std::fs::File;
+use std::io::Read;
 
 use std::path::Path;
 use clap::Parser;
@@ -48,8 +51,11 @@ fn main() {
                 std::process::exit(1);
             }
 
+            let mut file = File::open(input_file).unwrap();
+            let mut buffer: Vec<u8> = Vec::new();
+            let _ = file.read_to_end(&mut buffer);
 
-            atomizize(input_file, &images, passphrase);
+            mul_embed::<SplitScrambled>(buffer, &images, passphrase);
         }
 
         Commands::Capacity {

@@ -1,11 +1,9 @@
 use crate::steglib::util::{write_data_to_file};
-use crate::steglib::split::{Split, SplitScrambled};
+use crate::steglib::split::{Split};
 use crate::steglib::capacity::one_file_capacity;
-use std::fs::File;
-use std::io::Read;
 use tempfile::TempDir;
 
-fn embed_file(photo_path: &str, embedded_path: &str, passphrase: &str) {
+fn steghide_embed(photo_path: &str, embedded_path: &str, passphrase: &str) {
     let _output = std::process::Command::new("steghide")
             .arg("embed")
             .arg("-cf")
@@ -23,36 +21,16 @@ fn embed_file(photo_path: &str, embedded_path: &str, passphrase: &str) {
 
 
 /**
- * Scrambles a file into pieces, and puts those pieces into separate images. For example:
- *
- * Input file: this is a text
- * 
- * If there are three images:
- *
- * #1: tss s
- * #2: h  tt
- * #3: iiae
- *
- * The purpose of splitting it is to pretty heavily corrupt the file if any single image were to go
- * missing. Sure, the amount of damage depends on what type of data is being encoded, but it is
- * much better than storing the file into huge pieces.
- */
-pub fn atomizize(input_file: &str, image_paths: &Vec<String>, passphrase: &str) {
+ * Embed data from a buffer into multiple files using the chosen split method.
+*/ 
+pub fn mul_embed<T: Split>(input_buffer: Vec<u8>, image_paths: &Vec<String>, passphrase: &str) {
     // Load file in memory
-    let mut file = File::open(input_file).unwrap();
-    let mut buffer: Vec<u8> = Vec::new();
-    let _ = file.read_to_end(&mut buffer);
-
-
     let mut capacities: Vec<u64> = Vec::new();
     for image in image_paths {
         capacities.push(one_file_capacity(image));
     }
 
-
-    // Initialize places for scrambled memory
-    let mut scrambled_content = SplitScrambled::split(buffer, capacities);
-
+    let mut scrambled_content = T::split(input_buffer, capacities);
     
     let temp_dir = TempDir::new().unwrap();
     let temp_path = temp_dir.path();
@@ -89,7 +67,7 @@ pub fn atomizize(input_file: &str, image_paths: &Vec<String>, passphrase: &str) 
     let mut tmp: usize = 0;
     for image in image_paths {
         let file_path = temp_path.join(format!("file_part_{}", tmp));
-        embed_file(image, file_path.to_str().unwrap(), passphrase);
+        steghide_embed(image, file_path.to_str().unwrap(), passphrase);
         tmp += 1;
     }
     println!("Done!");
