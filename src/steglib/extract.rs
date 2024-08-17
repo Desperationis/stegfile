@@ -1,4 +1,5 @@
 use crate::steglib::util::write_data_to_file;
+use crate::steglib::split::{Split, SplitScrambled};
 use std::fs::File;
 use std::io::Read;
 use tempfile::TempDir;
@@ -71,20 +72,7 @@ pub fn reconstruct(image_paths: &Vec<String>, passphrase: &str, output_path: &st
 
     println!("Loaded all scrambled_pieces");
 
-    let mut unified_piece: Vec<u8> = vec![0; total_size];
-    println!("size of unified_piece is reserved to be {}", unified_piece.len());
-    let mut offset: usize = 0;
-    for piece in sorted_pieces {
-
-        let mut piece_num: usize = 0;
-        println!("offset is {offset}");
-        for byte in piece {
-            unified_piece[offset + piece_num * total_pieces] = byte;
-            piece_num += 1;
-        }
-
-        offset += 1;
-    }
+    let unified_piece: Vec<u8> = SplitScrambled::join(sorted_pieces);
 
 
     println!("Descrambled pieces into one file. Writing...");

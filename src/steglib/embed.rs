@@ -1,4 +1,6 @@
 use crate::steglib::util::{write_data_to_file};
+use crate::steglib::split::{Split, SplitScrambled};
+use crate::steglib::capacity::one_file_capacity;
 use std::fs::File;
 use std::io::Read;
 use tempfile::TempDir;
@@ -42,20 +44,14 @@ pub fn atomizize(input_file: &str, image_paths: &Vec<String>, passphrase: &str) 
     let _ = file.read_to_end(&mut buffer);
 
 
+    let mut capacities: Vec<u64> = Vec::new();
+    for image in image_paths {
+        capacities.push(one_file_capacity(image));
+    }
+
+
     // Initialize places for scrambled memory
-    let mut scrambled_content: Vec<Vec<u8>> = Vec::new();
-    for _ in image_paths {
-        scrambled_content.push(Vec::new());
-    }
-
-    // Scramble file into those buckets
-    let mut next_bin: usize = 0;
-    for number in buffer {
-        scrambled_content[next_bin].push(number);
-
-        next_bin += 1;
-        next_bin = next_bin % image_paths.len();
-    }
+    let mut scrambled_content = SplitScrambled::split(buffer, capacities);
 
     
     let temp_dir = TempDir::new().unwrap();
