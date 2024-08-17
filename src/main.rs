@@ -1,7 +1,7 @@
 // Lookup custom library
 mod steglib;
 use steglib::cli::{Cli, Commands};
-use steglib::capacity::storage_capacity;
+use steglib::capacity::{MulScrambledCapacity, MulFullCapacity, MulCapacity};
 use steglib::embed::atomizize;
 use steglib::extract::reconstruct;
 use steglib::util::find_jpg_images;
@@ -55,23 +55,16 @@ fn main() {
         Commands::Capacity {
             image_dir,
         } => {
-            let mut total_space_bytes: u64 = 0;
-            let mut smallest_image_size: u64 = std::u64::MAX;
             let mut images: Vec<String> = Vec::new();
             let image_path = Path::new(image_dir);
-            find_jpg_images(image_path, &mut images);
-
             if ! image_path.is_dir() {
                 println!("{} is not a directory. Please try again.",  image_dir);
                 std::process::exit(1);
             }
+            find_jpg_images(image_path, &mut images);
 
-            for image in &images {
-                println!("{}\t {}", storage_capacity(image), image);
-                total_space_bytes += storage_capacity(image);
-                smallest_image_size = std::cmp::min(smallest_image_size, storage_capacity(image) - 8);
-            }
-            println!("The total capacity of your drive is {} bytes. However, due to scrambling, the real amount of data you can store is at most {} bytes. After that, there is no guarentee that your data will be correctly embedded.", total_space_bytes, smallest_image_size * (images.len() as u64));
+            println!("Capacity using scrambled egg: {}", MulScrambledCapacity::capacity(&images)); 
+            println!("Capacity using whole egg: {}", MulFullCapacity::capacity(&images)); 
         }
     }
 
