@@ -4,7 +4,7 @@ use steglib::cli::{Cli, Commands};
 use steglib::capacity::{MulScrambledCapacity, MulFullCapacity, MulCapacity};
 use steglib::split::SplitScrambled;
 use steglib::embed::mul_embed;
-use steglib::extract::reconstruct;
+use steglib::extract::mul_extract;
 use steglib::util::find_jpg_images;
 use std::fs::File;
 use std::io::Read;
@@ -33,8 +33,7 @@ fn main() {
 
 
 
-            reconstruct(&images, passphrase, output_file);
-
+            mul_extract::<SplitScrambled>(&images, passphrase, output_file);
         }
         Commands::Embed {
             image_dir,

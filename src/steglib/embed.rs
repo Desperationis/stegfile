@@ -1,5 +1,5 @@
 use crate::steglib::util::{write_data_to_file};
-use crate::steglib::split::{Split};
+use crate::steglib::split::Split;
 use crate::steglib::capacity::one_file_capacity;
 use tempfile::TempDir;
 

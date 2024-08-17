@@ -1,10 +1,10 @@
 use crate::steglib::util::write_data_to_file;
-use crate::steglib::split::{Split, SplitScrambled};
+use crate::steglib::split::Split;
 use std::fs::File;
 use std::io::Read;
 use tempfile::TempDir;
 
-fn extract_file(photo_path: &str, output_path: &str, passphrase: &str) {
+fn steghide_extract(photo_path: &str, output_path: &str, passphrase: &str) {
     let _output = std::process::Command::new("steghide")
             .arg("extract")
             .arg("-sf")
@@ -27,7 +27,7 @@ fn extract_file(photo_path: &str, output_path: &str, passphrase: &str) {
  * that the order of the images in `image_paths` correspond to the file parts that were used in
  * first construction.
 */
-pub fn reconstruct(image_paths: &Vec<String>, passphrase: &str, output_path: &str) {
+pub fn mul_extract<T: Split>(image_paths: &Vec<String>, passphrase: &str, output_path: &str) {
     let temp_dir = TempDir::new().unwrap();
     let temp_path = temp_dir.path();
     println!("Temporary directory path: {:?}", temp_path);
@@ -40,7 +40,7 @@ pub fn reconstruct(image_paths: &Vec<String>, passphrase: &str, output_path: &st
         // First, get the secret files from the image
         let file_path = temp_path.join(format!("tmp_{}", total_pieces));
         let file_path_str = file_path.to_str().unwrap();
-        extract_file(image, file_path_str, passphrase);
+        steghide_extract(image, file_path_str, passphrase);
     
 
         let mut file = File::open(file_path_str).unwrap();
@@ -72,7 +72,7 @@ pub fn reconstruct(image_paths: &Vec<String>, passphrase: &str, output_path: &st
 
     println!("Loaded all scrambled_pieces");
 
-    let unified_piece: Vec<u8> = SplitScrambled::join(sorted_pieces);
+    let unified_piece: Vec<u8> = T::join(sorted_pieces);
 
 
     println!("Descrambled pieces into one file. Writing...");
