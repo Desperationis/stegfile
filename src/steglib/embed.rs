@@ -26,6 +26,8 @@ fn steghide_embed(photo_path: &str, embedded_path: &str, passphrase: &str) {
  * Embed data from a buffer into multiple files using the chosen split method.
 */ 
 pub fn mul_embed<T: Split>(input_buffer: Vec<u8>, image_paths: &Vec<String>, passphrase: &str) {
+
+    println!("Getting capacities of all images...");
     // Get max byte capacity of each image
     let mut capacities: Vec<u64> = Vec::new();
     for image in image_paths {
@@ -33,8 +35,10 @@ pub fn mul_embed<T: Split>(input_buffer: Vec<u8>, image_paths: &Vec<String>, pas
     }
 
     // Split content 
+    println!("Splitting file to different bins....");
     let split_content = T::split_to_bins(&input_buffer, &capacities);
 
+    println!("Writing split files to memory...");
     let temp_dir = TempDir::new().unwrap();
     let temp_path = temp_dir.path();
     let mut index: usize = 0;
@@ -51,6 +55,7 @@ pub fn mul_embed<T: Split>(input_buffer: Vec<u8>, image_paths: &Vec<String>, pas
     }
 
     // Embed each file piece with its associated image
+    println!("Embedding each temp file to memory....");
     let mut tmp: usize = 0;
     for image in image_paths {
         let file_path = temp_path.join(format!("file_part_{}", tmp));

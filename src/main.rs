@@ -93,7 +93,9 @@ fn main() {
                 println!("{} is not a directory. Please try again.",  image_dir);
                 std::process::exit(1);
             }
+            println!("Searching scrambled images...");
             find_jpg_images(image_path, &mut images);
+            println!("Done.");
 
             println!("Capacity using scrambled egg: {}", MulScrambledCapacity::capacity(&images)); 
             println!("Capacity using whole egg: {}", MulFullCapacity::capacity(&images)); 

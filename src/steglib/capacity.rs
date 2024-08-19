@@ -62,6 +62,7 @@ impl MulCapacity for MulScrambledCapacity {
         let mut smallest_file_size: u64 = std::u64::MAX;
 
         for file in files {
+            println!("Finding capacity of {}", file);
             let capacity: u64 = one_file_capacity(file);
             smallest_file_size = std::cmp::min(smallest_file_size, capacity - 8);
         }
@@ -77,6 +78,7 @@ impl MulCapacity for MulFullCapacity {
         let mut total_file_size: u64 = 0;
 
         for file in files {
+            println!("Finding capacity of {}", file);
             let capacity: u64 = one_file_capacity(file);
             total_file_size += capacity - 8;
         }

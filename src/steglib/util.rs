@@ -30,9 +30,12 @@ pub fn find_jpg_images(dir: &Path, images: &mut Vec<String>) {
             if path.is_dir() {
                 // Recursively search through the subdirectory
                 find_jpg_images(&path, images);
-            } else if path.extension().and_then(|s| s.to_str()) == Some("jpg") {
-                // If it's a JPG file, add its absolute path to the vector
-                images.push(path.canonicalize().expect("canonicalize failed").to_string_lossy().to_string());
+            } 
+            else {
+                let extension = path.extension().and_then(|s| s.to_str());
+                if extension == Some("jpg") || extension == Some("JPG") || extension == Some("JPEG") || extension == Some("jpeg") {
+                    images.push(path.canonicalize().expect("canonicalize failed").to_string_lossy().to_string());
+                }
             }
         }
     }
