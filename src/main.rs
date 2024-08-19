@@ -1,8 +1,8 @@
 // Lookup custom library
 mod steglib;
-use steglib::cli::{Cli, Commands};
+use steglib::cli::{Cli, Commands, SplitModeEnum};
 use steglib::capacity::{MulScrambledCapacity, MulFullCapacity, MulCapacity};
-use steglib::split::SplitChunks;
+use steglib::split::{SplitChunks, Split, SplitScrambled};
 use steglib::embed::mul_embed;
 use steglib::extract::mul_extract;
 use steglib::util::find_jpg_images;
@@ -15,6 +15,19 @@ use clap::Parser;
 
 fn main() {
     let cli = Cli::parse();
+
+    let mut scrambled_mode = SplitModeEnum::Full; 
+
+    match &cli.split_mode {
+        SplitModeEnum::Scrambled => {
+            scrambled_mode = SplitModeEnum::Scrambled;
+
+        }
+        SplitModeEnum::Full => {
+            scrambled_mode = SplitModeEnum::Full; 
+        }
+    }
+
 
     match &cli.command {
         Commands::Extract {
@@ -32,7 +45,15 @@ fn main() {
             }
             println!("Found {} JPG images.",  images.len());
 
-            mul_extract::<SplitChunks>(&images, passphrase, output_file);
+            
+            match &cli.split_mode {
+                SplitModeEnum::Scrambled => {
+                    mul_extract::<SplitScrambled>(&images, passphrase, output_file);
+                }
+                SplitModeEnum::Full => {
+                    mul_extract::<SplitChunks>(&images, passphrase, output_file);
+                }
+            }
         }
         Commands::Embed {
             image_dir,
@@ -53,7 +74,14 @@ fn main() {
             let mut buffer: Vec<u8> = Vec::new();
             let _ = file.read_to_end(&mut buffer);
 
-            mul_embed::<SplitChunks>(buffer, &images, passphrase);
+            match &cli.split_mode {
+                SplitModeEnum::Scrambled => {
+                    mul_embed::<SplitScrambled>(buffer, &images, passphrase);
+                }
+                SplitModeEnum::Full => {
+                    mul_embed::<SplitChunks>(buffer, &images, passphrase);
+                }
+            }
         }
 
         Commands::Capacity {

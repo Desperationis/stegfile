@@ -79,8 +79,7 @@ pub fn mul_extract<T: Split>(image_paths: &Vec<String>, passphrase: &str, output
 
     println!("Loaded all scrambled_pieces");
 
-    //let unified_piece: Vec<u8> = T::join(sorted_pieces);
-    let unified_piece = Vec::new();
+    let unified_piece: Vec<u8> = T::join_bins(&sorted_pieces);
 
 
     println!("Descrambled pieces into one file. Writing...");

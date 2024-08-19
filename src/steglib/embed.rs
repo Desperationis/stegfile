@@ -1,4 +1,4 @@
-use crate::steglib::util::{write_data_to_file};
+use crate::steglib::util::write_data_to_file;
 use crate::steglib::split::Split;
 use crate::steglib::capacity::one_file_capacity;
 use tempfile::TempDir;
@@ -26,47 +26,31 @@ fn steghide_embed(photo_path: &str, embedded_path: &str, passphrase: &str) {
  * Embed data from a buffer into multiple files using the chosen split method.
 */ 
 pub fn mul_embed<T: Split>(input_buffer: Vec<u8>, image_paths: &Vec<String>, passphrase: &str) {
-    // Load file in memory
+    // Get max byte capacity of each image
     let mut capacities: Vec<u64> = Vec::new();
     for image in image_paths {
         capacities.push(one_file_capacity(image));
     }
 
-    let mut scrambled_content = Vec::new();
-    //let mut scrambled_content = T::split(input_buffer, capacities);
-    
+    // Split content 
+    let split_content = T::split_to_bins(&input_buffer, &capacities);
+
     let temp_dir = TempDir::new().unwrap();
     let temp_path = temp_dir.path();
-    println!("Temporary directory path: {:?}", temp_path);
-
-
-
-    // VERY IMPORTANT: Prepend 8 bytes (64-bit, 18,446,744,073,709,551,616 possible values) to the
-    // beginning of each bucket to mark the bucket#. This is needed for reconstruction.
-    fn prepend_u64(vec: &mut Vec<u8>, value: u64) {
-        let bytes = value.to_be_bytes(); // or use to_le_bytes() for little-endian
-        vec.splice(0..0, bytes.iter().copied());
-    }
-
-    let mut index: u64 = 0;
-    for bucket in &mut scrambled_content {
-        prepend_u64(bucket, index);
-        index += 1;
-    }
-
-
-
-
-
-    // Dump buckets into files
     let mut index: usize = 0;
-    for file in scrambled_content {
-        println!("Writing to file_part_{}", index);
-        let file_path = temp_path.join(format!("file_part_{}", index));
-        let _ = write_data_to_file(file_path.to_str().unwrap(), file);
+    for mut bucket in split_content {
+        // Prepend the bucket with its piece number in first 8 bytes
+        let bytes = index.to_be_bytes(); 
+        bucket.splice(0..0, bytes.iter().copied());
+
+        println!("Writing to {:?}/file_part_{}", temp_dir, index);
+        let temp_file = temp_path.join(format!("file_part_{}", index));
+        let temp_file_path: &str = temp_file.to_str().unwrap();
+        let _ = write_data_to_file(temp_file_path, bucket);
         index += 1;
     }
 
+    // Embed each file piece with its associated image
     let mut tmp: usize = 0;
     for image in image_paths {
         let file_path = temp_path.join(format!("file_part_{}", tmp));
