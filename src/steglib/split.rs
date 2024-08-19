@@ -1,16 +1,40 @@
+use std::cmp::min;
+
+#[allow(dead_code)]
 pub trait Split {
     /**
-     * Given the data of a file as Vec<u8>, returns Vec<Vec<u8>> which is that same file
-     * redistributed among "buckets". Each index of the return is a 1:1 correspondence to the order
-     * of the buckets given in `bucket_capacities`. 
+     * Split Vec<u8> into Vec<Vec<u8>>, where each vec is filled to less than to equal to the
+     * corresponding size in `bin_capacities`. This does not modify `data`. Any remaining data that
+     * is not filled will be set to 0.
      */ 
-    fn split(data: Vec<u8>, bucket_capacities: Vec<u64>) -> Vec<Vec<u8>>;
+    fn split_to_bins(data: &Vec<u8>, bin_capacities: &Vec<u64>) -> Vec<Vec<u8>>;
 
     /**
-     * Given the exact return output of `split` (buckets in right index), returns the Vec<u8> that
-     * was used to create it.
+     * Undo split_to_bins. Does not modify `data`.
      */ 
-    fn join(data: Vec<Vec<u8>>) -> Vec<u8>;
+    fn join_bins(data: &[Vec<u8>]) -> Vec<u8>;
+}
+
+
+/**
+ * Fill any remaining space of each element of `bins` with 0 so that its length corresponds to the
+ * element in `bin_capacities`.
+ */ 
+fn inflate_bins(bins: &mut Vec<Vec<u8>>, bin_capacities: &Vec<u64>) {
+    while bins.len() < bin_capacities.len() {
+        bins.push(Vec::new());
+    }
+
+    let mut index = 0;
+    while index < bin_capacities.len() {
+        let remaining_elements = (bin_capacities[index] as usize) - bins[index].len();
+
+        if remaining_elements > 0 {
+            bins[index].extend(vec![0; remaining_elements]);
+        }
+
+        index += 1;
+    }
 }
 
 
@@ -30,38 +54,34 @@ pub trait Split {
  */
 pub struct SplitScrambled;
 
-
 impl Split for SplitScrambled {
-    fn split(data: Vec<u8>, bucket_capacities: Vec<u64>) -> Vec<Vec<u8>> {
-
-        let mut scrambled_content: Vec<Vec<u8>> = vec![Vec::new(); bucket_capacities.len()];
-
+    fn split_to_bins(data: &Vec<u8>, bin_capacities: &Vec<u64>) -> Vec<Vec<u8>> {
+        let cloned_data = data.clone();
+        let mut scrambled_content: Vec<Vec<u8>> = vec![Vec::new(); bin_capacities.len()];
 
         // Scramble data into buckets
         let mut next_bin: usize = 0;
-        for number in data {
+        for number in cloned_data {
             scrambled_content[next_bin].push(number);
-            next_bin = (next_bin + 1) % bucket_capacities.len();
+            next_bin = (next_bin + 1) % bin_capacities.len();
         }
+        
+        inflate_bins(&mut scrambled_content, &bin_capacities);
 
 
         scrambled_content
     }
 
-    fn join(data: Vec<Vec<u8>>) -> Vec<u8> {
-        let mut total_size: usize = 0;
-        for piece in &data {
-            total_size += piece.len();
-        }
 
-        let mut unified_piece: Vec<u8> = vec![0; total_size];
+    fn join_bins(data: &[Vec<u8>]) -> Vec<u8> {
+        let total_byte_count: usize = data.iter().map(|v| v.len()).sum();
+        let mut unified_piece: Vec<u8> = Vec::with_capacity(total_byte_count);
         let mut offset: usize = 0;
         let bucket_count = data.len();
 
-
         for piece in data {
             let mut piece_num: usize = 0;
-            for byte in piece {
+            for byte in piece.clone() {
                 unified_piece[offset + piece_num * bucket_count] = byte;
                 piece_num += 1;
             }
@@ -79,57 +99,50 @@ impl Split for SplitScrambled {
 
 
 
-
 /**
  * Maximizes available file space by splitting file into chunks.
  *
  * Input file: this is a text
  * 
- * If there are three buckets:
+ * If there are three bins:
  *
  * #1 (3 bytes): thi
  * #2 (6 bytes): s is a
  * #3 (10000 bytes): text
  *
- * Buckets are filled in the order they are passed in. For example, if #3 were #1, all the data
- * would try to be filled in #1 first before moving on to #2.
+ * Buckets are filled in the order they are passed in. 
  */
 pub struct SplitChunks;
 
 
 impl Split for SplitChunks {
-    fn split(mut data: Vec<u8>, bucket_capacities: Vec<u64>) -> Vec<Vec<u8>> {
-        let mut bins: Vec<Vec<u8>> = vec![Vec::new(); bucket_capacities.len()];
+    fn split_to_bins(data: &Vec<u8>, bin_capacities: &Vec<u64>) -> Vec<Vec<u8>> {
+        let mut cloned_data = data.clone();
+        let mut bins = Vec::with_capacity(bin_capacities.len());
+        let mut index = 0;
 
+        while cloned_data.len() > 0 {
+            // Capacity of the bin to fill
+            let capacity = bin_capacities[index];
+            index += 1;
 
-        // Chunk data into buckets
-        let mut bin_index = 0;
-        while data.len() > 0 {
-            let bin_capacity: u64 = bucket_capacities[bin_index];
-            let bin = &mut bins[bin_index];
-            let buffer_size: usize = std::cmp::min(bin_capacity as usize, data.len());
+            // Read at most that many bytes to fill the bin.
+            let bytes_to_drain: usize = min(capacity as usize, cloned_data.len());
+            let buffer: Vec<u8> = cloned_data.drain(..bytes_to_drain).collect();
 
-            let buffer: Vec<u8> = data.drain(..buffer_size).collect();
-
-            bin.extend(buffer);
-            
-            bin_index += 1;
+            bins.push(buffer);
         }
 
-
+        inflate_bins(&mut bins, &bin_capacities);
         bins
     }
 
-    fn join(data: Vec<Vec<u8>>) -> Vec<u8> {
-        let mut total_size: usize = 0;
-        for piece in &data {
-            total_size += piece.len();
-        }
-
-        let mut unified_piece: Vec<u8> = vec![0; total_size];
+    fn join_bins(data: &[Vec<u8>]) -> Vec<u8> {
+        let total_byte_count: usize = data.iter().map(|v| v.len()).sum();
+        let mut unified_piece: Vec<u8> = Vec::with_capacity(total_byte_count);
 
         for piece in data {
-            unified_piece.extend(piece);
+            unified_piece.extend(piece.clone());
         }
 
         unified_piece
@@ -138,6 +151,43 @@ impl Split for SplitChunks {
 
 
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_split_full() {
+        let data: Vec<u8> = vec!(10, 20);
+        let buckets_1: Vec<u64> = vec!(3, 5);
+        let buckets_2: Vec<u64> = vec!(1, 5);
+        let buckets_3: Vec<u64> = vec!(1, 5, 1, 1, 1, 3);
+        let buckets_4: Vec<u64> = vec!(2);
+
+        // Split the data, test for not modifying variables.
+        assert_eq!(SplitChunks::split_to_bins(&data, &buckets_1), vec!(vec!(10, 20, 0), vec!(0, 0, 0, 0, 0)));
+        assert_eq!(SplitChunks::split_to_bins(&data, &buckets_2), vec!(vec!(10), vec!(20, 0, 0, 0, 0)));
+        assert_eq!(SplitChunks::split_to_bins(&data, &buckets_3), vec!(vec!(10), vec!(20, 0, 0, 0, 0), vec!(0), vec!(0), vec!(0), vec!(0,0,0)));
+        assert_eq!(SplitChunks::split_to_bins(&data, &buckets_4), vec!(vec!(10, 20)));
+
+        assert_eq!(data, vec!(10, 20));
+    }
+
+    #[test]
+    fn test_split_scrambled() {
+        let data: Vec<u8> = vec!(10, 20, 30, 40, 50);
+        let buckets_1: Vec<u64> = vec!(3, 5);
+        let buckets_2: Vec<u64> = vec!(3, 3, 3);
+        let buckets_3: Vec<u64> = vec!(5);
+
+        // Split the data, test for not modifying variables.
+        assert_eq!(SplitScrambled::split_to_bins(&data, &buckets_1), vec!(vec!(10, 30, 50), vec!(20, 40, 0, 0, 0)));
+        assert_eq!(SplitScrambled::split_to_bins(&data, &buckets_2), vec!(vec!(10, 40, 0), vec!(20, 50, 0), vec!(30, 0, 0)));
+        assert_eq!(SplitScrambled::split_to_bins(&data, &buckets_3), vec!(vec!(10, 20, 30, 40, 50)));
+
+        assert_eq!(data, vec!(10, 20, 30, 40, 50));
+    }
+
+}
 
 
 

@@ -12,6 +12,8 @@ fn steghide_embed(photo_path: &str, embedded_path: &str, passphrase: &str) {
             .arg(embedded_path)
             .arg("-p")
             .arg(passphrase)
+            .arg("-Z")
+            .arg("-N")
             .output()
             .expect("Command failed to start");
 
@@ -30,7 +32,8 @@ pub fn mul_embed<T: Split>(input_buffer: Vec<u8>, image_paths: &Vec<String>, pas
         capacities.push(one_file_capacity(image));
     }
 
-    let mut scrambled_content = T::split(input_buffer, capacities);
+    let mut scrambled_content = Vec::new();
+    //let mut scrambled_content = T::split(input_buffer, capacities);
     
     let temp_dir = TempDir::new().unwrap();
     let temp_path = temp_dir.path();

@@ -57,6 +57,7 @@ pub fn mul_extract<T: Split>(image_paths: &Vec<String>, passphrase: &str, output
 
     for piece in scrambled_pieces {
         if piece.len() == 8 {
+            println!("This piece only contains header data. Skipping...");
             continue;
         }
 
@@ -71,12 +72,15 @@ pub fn mul_extract<T: Split>(image_paths: &Vec<String>, passphrase: &str, output
     }
 
 
+
+
     println!("Size of all images is {}", total_size);
     println!("There are {} images to sift through", total_pieces);
 
     println!("Loaded all scrambled_pieces");
 
-    let unified_piece: Vec<u8> = T::join(sorted_pieces);
+    //let unified_piece: Vec<u8> = T::join(sorted_pieces);
+    let unified_piece = Vec::new();
 
 
     println!("Descrambled pieces into one file. Writing...");

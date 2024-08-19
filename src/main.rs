@@ -2,7 +2,7 @@
 mod steglib;
 use steglib::cli::{Cli, Commands};
 use steglib::capacity::{MulScrambledCapacity, MulFullCapacity, MulCapacity};
-use steglib::split::{SplitScrambled, SplitChunks};
+use steglib::split::SplitChunks;
 use steglib::embed::mul_embed;
 use steglib::extract::mul_extract;
 use steglib::util::find_jpg_images;
@@ -30,8 +30,7 @@ fn main() {
                 println!("{} is not a directory. Please try again.",  image_dir);
                 std::process::exit(1);
             }
-
-
+            println!("Found {} JPG images.",  images.len());
 
             mul_extract::<SplitChunks>(&images, passphrase, output_file);
         }
