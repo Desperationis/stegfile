@@ -24,3 +24,6 @@ Cargo.lock
 # Stegfile
 *.jpg
 random_data_input
+test_images/
+OUTPUT
+EMBEDME

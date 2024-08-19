@@ -56,6 +56,10 @@ pub fn mul_extract<T: Split>(image_paths: &Vec<String>, passphrase: &str, output
     let mut sorted_pieces: Vec<Vec<u8>> = vec![Vec::new(); scrambled_pieces.len()];
 
     for piece in scrambled_pieces {
+        if piece.len() == 8 {
+            continue;
+        }
+
         let index = u64::from_be_bytes(
             piece[0..8].try_into().expect("Slice with incorrect length")
         ) as usize;

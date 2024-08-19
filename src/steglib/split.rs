@@ -72,3 +72,73 @@ impl Split for SplitScrambled {
         unified_piece
     }
 }
+
+
+
+
+
+
+
+
+/**
+ * Maximizes available file space by splitting file into chunks.
+ *
+ * Input file: this is a text
+ * 
+ * If there are three buckets:
+ *
+ * #1 (3 bytes): thi
+ * #2 (6 bytes): s is a
+ * #3 (10000 bytes): text
+ *
+ * Buckets are filled in the order they are passed in. For example, if #3 were #1, all the data
+ * would try to be filled in #1 first before moving on to #2.
+ */
+pub struct SplitChunks;
+
+
+impl Split for SplitChunks {
+    fn split(mut data: Vec<u8>, bucket_capacities: Vec<u64>) -> Vec<Vec<u8>> {
+        let mut bins: Vec<Vec<u8>> = vec![Vec::new(); bucket_capacities.len()];
+
+
+        // Chunk data into buckets
+        let mut bin_index = 0;
+        while data.len() > 0 {
+            let bin_capacity: u64 = bucket_capacities[bin_index];
+            let bin = &mut bins[bin_index];
+            let buffer_size: usize = std::cmp::min(bin_capacity as usize, data.len());
+
+            let buffer: Vec<u8> = data.drain(..buffer_size).collect();
+
+            bin.extend(buffer);
+            
+            bin_index += 1;
+        }
+
+
+        bins
+    }
+
+    fn join(data: Vec<Vec<u8>>) -> Vec<u8> {
+        let mut total_size: usize = 0;
+        for piece in &data {
+            total_size += piece.len();
+        }
+
+        let mut unified_piece: Vec<u8> = vec![0; total_size];
+
+        for piece in data {
+            unified_piece.extend(piece);
+        }
+
+        unified_piece
+    }
+}
+
+
+
+
+
+
+

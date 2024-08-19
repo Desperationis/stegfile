@@ -2,7 +2,7 @@
 mod steglib;
 use steglib::cli::{Cli, Commands};
 use steglib::capacity::{MulScrambledCapacity, MulFullCapacity, MulCapacity};
-use steglib::split::SplitScrambled;
+use steglib::split::{SplitScrambled, SplitChunks};
 use steglib::embed::mul_embed;
 use steglib::extract::mul_extract;
 use steglib::util::find_jpg_images;
@@ -33,7 +33,7 @@ fn main() {
 
 
 
-            mul_extract::<SplitScrambled>(&images, passphrase, output_file);
+            mul_extract::<SplitChunks>(&images, passphrase, output_file);
         }
         Commands::Embed {
             image_dir,
@@ -54,7 +54,7 @@ fn main() {
             let mut buffer: Vec<u8> = Vec::new();
             let _ = file.read_to_end(&mut buffer);
 
-            mul_embed::<SplitScrambled>(buffer, &images, passphrase);
+            mul_embed::<SplitChunks>(buffer, &images, passphrase);
         }
 
         Commands::Capacity {
