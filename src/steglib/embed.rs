@@ -14,6 +14,7 @@ fn steghide_embed(photo_path: &str, embedded_path: &str, passphrase: &str) {
             .arg(passphrase)
             .arg("-Z")
             .arg("-N")
+            .arg("-K")
             .output()
             .expect("Command failed to start");
 

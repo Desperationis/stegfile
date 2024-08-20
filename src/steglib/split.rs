@@ -22,9 +22,12 @@ pub trait Split {
  */ 
 fn inflate_bins(bins: &mut Vec<Vec<u8>>, bin_capacities: &Vec<u64>) {
     while bins.len() < bin_capacities.len() {
-        bins.push(Vec::new());
+        bins.push(Vec::new()); // Didn't fill all the files? Just make empty files
     }
 
+    /*
+      TODO, REMOVE THIS
+     
     let mut index = 0;
     while index < bin_capacities.len() {
         let remaining_elements = (bin_capacities[index] as usize) - bins[index].len();
@@ -35,6 +38,7 @@ fn inflate_bins(bins: &mut Vec<Vec<u8>>, bin_capacities: &Vec<u64>) {
 
         index += 1;
     }
+    */
 }
 
 
