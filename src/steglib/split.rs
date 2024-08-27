@@ -17,28 +17,12 @@ pub trait Split {
 
 
 /**
- * Fill any remaining space of each element of `bins` with 0 so that its length corresponds to the
- * element in `bin_capacities`.
+ * Match length of `bins` with `bin_capacities` by adding empty bins.
  */ 
 fn inflate_bins(bins: &mut Vec<Vec<u8>>, bin_capacities: &Vec<u64>) {
     while bins.len() < bin_capacities.len() {
         bins.push(Vec::new()); // Didn't fill all the files? Just make empty files
     }
-
-    /*
-      TODO, REMOVE THIS
-     
-    let mut index = 0;
-    while index < bin_capacities.len() {
-        let remaining_elements = (bin_capacities[index] as usize) - bins[index].len();
-
-        if remaining_elements > 0 {
-            bins[index].extend(vec![0; remaining_elements]);
-        }
-
-        index += 1;
-    }
-    */
 }
 
 
@@ -168,9 +152,9 @@ mod tests {
         let buckets_4: Vec<u64> = vec!(2);
 
         // Split the data, test for not modifying variables.
-        assert_eq!(SplitChunks::split_to_bins(&data, &buckets_1), vec!(vec!(10, 20, 0), vec!(0, 0, 0, 0, 0)));
-        assert_eq!(SplitChunks::split_to_bins(&data, &buckets_2), vec!(vec!(10), vec!(20, 0, 0, 0, 0)));
-        assert_eq!(SplitChunks::split_to_bins(&data, &buckets_3), vec!(vec!(10), vec!(20, 0, 0, 0, 0), vec!(0), vec!(0), vec!(0), vec!(0,0,0)));
+        assert_eq!(SplitChunks::split_to_bins(&data, &buckets_1), vec!(vec!(10, 20), vec!()));
+        assert_eq!(SplitChunks::split_to_bins(&data, &buckets_2), vec!(vec!(10), vec!(20)));
+        assert_eq!(SplitChunks::split_to_bins(&data, &buckets_3), vec!(vec!(10), vec!(20), vec!(), vec!(), vec!(), vec!()));
         assert_eq!(SplitChunks::split_to_bins(&data, &buckets_4), vec!(vec!(10, 20)));
 
         assert_eq!(data, vec!(10, 20));
@@ -184,8 +168,8 @@ mod tests {
         let buckets_3: Vec<u64> = vec!(5);
 
         // Split the data, test for not modifying variables.
-        assert_eq!(SplitScrambled::split_to_bins(&data, &buckets_1), vec!(vec!(10, 30, 50), vec!(20, 40, 0, 0, 0)));
-        assert_eq!(SplitScrambled::split_to_bins(&data, &buckets_2), vec!(vec!(10, 40, 0), vec!(20, 50, 0), vec!(30, 0, 0)));
+        assert_eq!(SplitScrambled::split_to_bins(&data, &buckets_1), vec!(vec!(10, 30, 50), vec!(20, 40)));
+        assert_eq!(SplitScrambled::split_to_bins(&data, &buckets_2), vec!(vec!(10, 40), vec!(20, 50), vec!(30)));
         assert_eq!(SplitScrambled::split_to_bins(&data, &buckets_3), vec!(vec!(10, 20, 30, 40, 50)));
 
         assert_eq!(data, vec!(10, 20, 30, 40, 50));

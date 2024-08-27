@@ -97,8 +97,11 @@ fn main() {
             find_jpg_images(image_path, &mut images);
             println!("Done.");
 
-            println!("Capacity using scrambled egg: {}", MulScrambledCapacity::capacity(&images)); 
-            println!("Capacity using whole egg: {}", MulFullCapacity::capacity(&images)); 
+            let scrambled_capacity = MulScrambledCapacity::capacity(&images);
+            let full_capacity = MulFullCapacity::capacity(&images);
+
+            println!("Capacity using scrambled egg: {}", scrambled_capacity); 
+            println!("Capacity using whole egg: {}", full_capacity); 
         }
     }
 

@@ -29,8 +29,10 @@ pub fn one_file_capacity(photo_path: &str) -> u64 {
         _ => 1.0, // Default multiplier if an unknown prefix is encountered
     };
 
-    // Calculate the result by multiplying the value with the multiplier
-    (value * multiplier) as u64
+    // Calculate the result by multiplying the value with the multiplier.
+    // Steghide really likes to write its own stuff to the file, so we remove 100 bytes from the
+    // capcity just to really make sure we don't write to it.
+    (value * multiplier - 100.0) as u64
 }
 
 

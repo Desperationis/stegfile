@@ -2,6 +2,11 @@ use crate::steglib::util::write_data_to_file;
 use crate::steglib::split::Split;
 use crate::steglib::capacity::one_file_capacity;
 use tempfile::TempDir;
+use std::sync::{Arc, Mutex, mpsc};
+use std::thread;
+use std::time::Duration;
+
+const NUM_WORKERS: usize = 10;
 
 fn steghide_embed(photo_path: &str, embedded_path: &str, passphrase: &str) {
     let _output = std::process::Command::new("steghide")
@@ -15,10 +20,14 @@ fn steghide_embed(photo_path: &str, embedded_path: &str, passphrase: &str) {
             .arg("-Z")
             .arg("-N")
             .arg("-K")
+            .arg("-e")
+            .arg("none")
             .output()
             .expect("Command failed to start");
 
-
+    let stdout = String::from_utf8_lossy(&_output.stdout);
+    let stderr = String::from_utf8_lossy(&_output.stderr);
+    println!("{}", stderr);
     println!("Embedded {} into {}", embedded_path, photo_path);
 }
 
@@ -56,13 +65,77 @@ pub fn mul_embed<T: Split>(input_buffer: Vec<u8>, image_paths: &Vec<String>, pas
     }
 
     // Embed each file piece with its associated image
-    println!("Embedding each temp file to memory....");
+    println!("Embedding each temp file to its file....");
+
+    /////////////////////////////////////////
     let mut tmp: usize = 0;
+    let mut paths: Vec<String> = Vec::new();
     for image in image_paths {
         let file_path = temp_path.join(format!("file_part_{}", tmp));
-        steghide_embed(image, file_path.to_str().unwrap(), passphrase);
+        let file_path_str = file_path.to_str().unwrap().to_string();
+        println!("{}", file_path_str);
+        paths.push(file_path_str);
         tmp += 1;
     }
+
+    // Create a channel for sending work items
+    let (tx, rx) = mpsc::channel::<(String, String)>();
+    let rx = Arc::new(Mutex::new(rx));
+    let passphrase_mux = Arc::new(String::from(passphrase));
+    
+    // Create a vector to hold the worker threads
+    let mut workers = Vec::with_capacity(NUM_WORKERS);
+    
+    // Create a thread pool
+    for id in 0..NUM_WORKERS {
+        let rx = Arc::clone(&rx);
+        let shared_string_clone = Arc::clone(&passphrase_mux);
+        
+        let worker = thread::spawn(move || {
+            loop {
+                // Receive a string from the channel
+                let work = rx.lock().unwrap().recv();
+                
+                match work {
+                    Ok(string) => {
+                        // Process the string (here we just print it)
+                        println!("Worker {} received: {} {}", id, string.0, string.1);
+                        steghide_embed(&string.1, &string.0, &shared_string_clone);
+                    },
+                    Err(_) => break, // Exit the loop if the channel is closed
+                }
+            }
+        });
+        
+        workers.push(worker);
+    }
+    
+    // Send some strings to be processed
+    for (i, value) in image_paths.iter().enumerate() {
+        tx.send((paths[i].clone(), value.clone())).unwrap();
+    }
+    
+    // Drop the sender so that workers will stop after processing all tasks
+    drop(tx);
+    
+    // Wait for all worker threads to finish
+    for worker in workers {
+        worker.join().unwrap();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /////////////////////////////////////////////
     println!("Done!");
 }
 
