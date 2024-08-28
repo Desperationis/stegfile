@@ -3,7 +3,6 @@ use crate::steglib::split::Split;
 use crate::steglib::util::write_data_to_file;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
-use std::time::Duration;
 use tempfile::TempDir;
 
 const NUM_WORKERS: usize = 10;
@@ -27,7 +26,8 @@ fn steghide_embed(photo_path: &str, embedded_path: &str, passphrase: &str) {
 
     let stdout = String::from_utf8_lossy(&_output.stdout);
     let stderr = String::from_utf8_lossy(&_output.stderr);
-    println!("{}", stderr);
+    println!("stdout: {}", stdout);
+    println!("stderr: {}", stderr);
     println!("Embedded {} into {}", embedded_path, photo_path);
 }
 
@@ -68,7 +68,7 @@ pub fn mul_embed<T: Split>(input_buffer: Vec<u8>, image_paths: &Vec<String>, pas
     /////////////////////////////////////////
     let mut tmp: usize = 0;
     let mut paths: Vec<String> = Vec::new();
-    for image in image_paths {
+    for _ in 0..image_paths.len() {
         let file_path = temp_path.join(format!("file_part_{}", tmp));
         let file_path_str = file_path.to_str().unwrap().to_string();
         println!("{}", file_path_str);

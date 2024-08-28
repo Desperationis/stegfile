@@ -2,9 +2,6 @@ use crate::steglib::split::Split;
 use crate::steglib::util::write_data_to_file;
 use std::fs::File;
 use std::io::Read;
-use std::sync::{mpsc, Arc, Mutex};
-use std::thread;
-use std::time::Duration;
 use tempfile::TempDir;
 
 fn steghide_extract(photo_path: &str, output_path: &str, passphrase: &str) {

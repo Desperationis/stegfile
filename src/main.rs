@@ -6,7 +6,7 @@ use steglib::capacity::{MulCapacity, MulFullCapacity, MulScrambledCapacity};
 use steglib::cli::{Cli, Commands, SplitModeEnum};
 use steglib::embed::mul_embed;
 use steglib::extract::mul_extract;
-use steglib::split::{Split, SplitChunks, SplitScrambled};
+use steglib::split::{SplitChunks, SplitScrambled};
 use steglib::util::find_jpg_images;
 
 use clap::Parser;
@@ -14,17 +14,6 @@ use std::path::Path;
 
 fn main() {
     let cli = Cli::parse();
-
-    let mut scrambled_mode = SplitModeEnum::Full;
-
-    match &cli.split_mode {
-        SplitModeEnum::Scrambled => {
-            scrambled_mode = SplitModeEnum::Scrambled;
-        }
-        SplitModeEnum::Full => {
-            scrambled_mode = SplitModeEnum::Full;
-        }
-    }
 
     match &cli.command {
         Commands::Extract {
