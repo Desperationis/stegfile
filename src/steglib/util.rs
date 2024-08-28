@@ -24,29 +24,38 @@ pub fn write_data_to_file(file_path: &str, data: Vec<u8>) {
         .expect(&format!("Failed to write data to {}", file_path));
 }
 
-pub fn find_jpg_images(dir: &Path, images: &mut Vec<String>) {
-    if dir.is_dir() {
-        for entry in fs::read_dir(dir).expect("read_dir failed") {
-            let entry = entry.expect("entry failed");
-            let path = entry.path();
 
-            if path.is_dir() {
-                // Recursively search through the subdirectory
-                find_jpg_images(&path, images);
-            } else {
-                let extension = path.extension().and_then(|s| s.to_str());
-                if extension == Some("jpg")
-                    || extension == Some("JPG")
-                    || extension == Some("JPEG")
-                    || extension == Some("jpeg")
-                {
-                    images.push(
-                        path.canonicalize()
-                            .expect("canonicalize failed")
-                            .to_string_lossy()
-                            .to_string(),
-                    );
-                }
+/**
+ * Pushes all jpg images found from recursively searching `dir` to `images`.
+ */
+pub fn find_jpg_images(dir: &Path, images: &mut Vec<String>) {
+    let dir_str: &str = dir.to_str().unwrap();
+
+    if !dir.is_dir() {
+        panic!("{} is not a path.", dir_str);
+    }
+
+    let entries = fs::read_dir(dir).expect(&format!("Unable to read files in {}", dir_str));
+
+    for entry in entries {
+        let entry = entry.expect("Unable to unwrap entry.");
+        let path = entry.path();
+
+        if path.is_dir() {
+            find_jpg_images(&path, images);
+        } else {
+            let extension = path.extension().and_then(|s| s.to_str());
+            if extension == Some("jpg")
+                || extension == Some("JPG")
+                || extension == Some("JPEG")
+                || extension == Some("jpeg")
+            {
+                images.push(
+                    path.canonicalize()
+                        .expect("canonicalize failed")
+                        .to_string_lossy()
+                        .to_string(),
+                );
             }
         }
     }
