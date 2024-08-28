@@ -6,31 +6,29 @@ pub trait Split {
      * Split Vec<u8> into Vec<Vec<u8>>, where each vec is filled to less than to equal to the
      * corresponding size in `bin_capacities`. This does not modify `data`. Any remaining data that
      * is not filled will be set to 0.
-     */ 
+     */
     fn split_to_bins(data: &Vec<u8>, bin_capacities: &Vec<u64>) -> Vec<Vec<u8>>;
 
     /**
      * Undo split_to_bins. Does not modify `data`.
-     */ 
+     */
     fn join_bins(data: &[Vec<u8>]) -> Vec<u8>;
 }
 
-
 /**
  * Match length of `bins` with `bin_capacities` by adding empty bins.
- */ 
+ */
 fn inflate_bins(bins: &mut Vec<Vec<u8>>, bin_capacities: &Vec<u64>) {
     while bins.len() < bin_capacities.len() {
         bins.push(Vec::new()); // Didn't fill all the files? Just make empty files
     }
 }
 
-
 /**
  * Scrambles a file into pieces. For example:
  *
  * Input file: this is a text
- * 
+ *
  * If there are three buckets:
  *
  * #1: tss s
@@ -53,13 +51,11 @@ impl Split for SplitScrambled {
             scrambled_content[next_bin].push(number);
             next_bin = (next_bin + 1) % bin_capacities.len();
         }
-        
-        inflate_bins(&mut scrambled_content, &bin_capacities);
 
+        inflate_bins(&mut scrambled_content, &bin_capacities);
 
         scrambled_content
     }
-
 
     fn join_bins(data: &[Vec<u8>]) -> Vec<u8> {
         let total_byte_count: usize = data.iter().map(|v| v.len()).sum();
@@ -81,27 +77,20 @@ impl Split for SplitScrambled {
     }
 }
 
-
-
-
-
-
-
 /**
  * Maximizes available file space by splitting file into chunks.
  *
  * Input file: this is a text
- * 
+ *
  * If there are three bins:
  *
  * #1 (3 bytes): thi
  * #2 (6 bytes): s is a
  * #3 (10000 bytes): text
  *
- * Buckets are filled in the order they are passed in. 
+ * Buckets are filled in the order they are passed in.
  */
 pub struct SplitChunks;
-
 
 impl Split for SplitChunks {
     fn split_to_bins(data: &Vec<u8>, bin_capacities: &Vec<u64>) -> Vec<Vec<u8>> {
@@ -137,46 +126,60 @@ impl Split for SplitChunks {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_split_full() {
-        let data: Vec<u8> = vec!(10, 20);
-        let buckets_1: Vec<u64> = vec!(3, 5);
-        let buckets_2: Vec<u64> = vec!(1, 5);
-        let buckets_3: Vec<u64> = vec!(1, 5, 1, 1, 1, 3);
-        let buckets_4: Vec<u64> = vec!(2);
+        let data: Vec<u8> = vec![10, 20];
+        let buckets_1: Vec<u64> = vec![3, 5];
+        let buckets_2: Vec<u64> = vec![1, 5];
+        let buckets_3: Vec<u64> = vec![1, 5, 1, 1, 1, 3];
+        let buckets_4: Vec<u64> = vec![2];
 
         // Split the data, test for not modifying variables.
-        assert_eq!(SplitChunks::split_to_bins(&data, &buckets_1), vec!(vec!(10, 20), vec!()));
-        assert_eq!(SplitChunks::split_to_bins(&data, &buckets_2), vec!(vec!(10), vec!(20)));
-        assert_eq!(SplitChunks::split_to_bins(&data, &buckets_3), vec!(vec!(10), vec!(20), vec!(), vec!(), vec!(), vec!()));
-        assert_eq!(SplitChunks::split_to_bins(&data, &buckets_4), vec!(vec!(10, 20)));
+        assert_eq!(
+            SplitChunks::split_to_bins(&data, &buckets_1),
+            vec!(vec!(10, 20), vec!())
+        );
+        assert_eq!(
+            SplitChunks::split_to_bins(&data, &buckets_2),
+            vec!(vec!(10), vec!(20))
+        );
+        assert_eq!(
+            SplitChunks::split_to_bins(&data, &buckets_3),
+            vec!(vec!(10), vec!(20), vec!(), vec!(), vec!(), vec!())
+        );
+        assert_eq!(
+            SplitChunks::split_to_bins(&data, &buckets_4),
+            vec!(vec!(10, 20))
+        );
 
         assert_eq!(data, vec!(10, 20));
     }
 
     #[test]
     fn test_split_scrambled() {
-        let data: Vec<u8> = vec!(10, 20, 30, 40, 50);
-        let buckets_1: Vec<u64> = vec!(3, 5);
-        let buckets_2: Vec<u64> = vec!(3, 3, 3);
-        let buckets_3: Vec<u64> = vec!(5);
+        let data: Vec<u8> = vec![10, 20, 30, 40, 50];
+        let buckets_1: Vec<u64> = vec![3, 5];
+        let buckets_2: Vec<u64> = vec![3, 3, 3];
+        let buckets_3: Vec<u64> = vec![5];
 
         // Split the data, test for not modifying variables.
-        assert_eq!(SplitScrambled::split_to_bins(&data, &buckets_1), vec!(vec!(10, 30, 50), vec!(20, 40)));
-        assert_eq!(SplitScrambled::split_to_bins(&data, &buckets_2), vec!(vec!(10, 40), vec!(20, 50), vec!(30)));
-        assert_eq!(SplitScrambled::split_to_bins(&data, &buckets_3), vec!(vec!(10, 20, 30, 40, 50)));
+        assert_eq!(
+            SplitScrambled::split_to_bins(&data, &buckets_1),
+            vec!(vec!(10, 30, 50), vec!(20, 40))
+        );
+        assert_eq!(
+            SplitScrambled::split_to_bins(&data, &buckets_2),
+            vec!(vec!(10, 40), vec!(20, 50), vec!(30))
+        );
+        assert_eq!(
+            SplitScrambled::split_to_bins(&data, &buckets_3),
+            vec!(vec!(10, 20, 30, 40, 50))
+        );
 
         assert_eq!(data, vec!(10, 20, 30, 40, 50));
     }
-
 }
-
-
-
-

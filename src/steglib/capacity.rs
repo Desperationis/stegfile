@@ -1,19 +1,14 @@
 pub fn one_file_capacity(photo_path: &str) -> u64 {
     let _output = std::process::Command::new("steghide")
-            .arg("--info")
-            .arg(photo_path)
-            .output()
-            .unwrap();
-
-    let s = String::from_utf8_lossy(&_output.stdout);
-    let capacity_line = s.lines()
-        .find(|line| line.contains("capacity"))
+        .arg("--info")
+        .arg(photo_path)
+        .output()
         .unwrap();
 
-    let capacity_value = capacity_line.split(':')
-        .nth(1)
-        .unwrap()
-        .trim();
+    let s = String::from_utf8_lossy(&_output.stdout);
+    let capacity_line = s.lines().find(|line| line.contains("capacity")).unwrap();
+
+    let capacity_value = capacity_line.split(':').nth(1).unwrap().trim();
 
     let mut parts = capacity_value.split_whitespace();
     let value_str = parts.next().unwrap();
@@ -35,11 +30,10 @@ pub fn one_file_capacity(photo_path: &str) -> u64 {
     (value * multiplier - 100.0) as u64
 }
 
-
 pub trait MulCapacity {
     /**
      * `files` are paths to any file `steghide` can support.
-     */ 
+     */
     fn capacity(files: &Vec<String>) -> u64;
 }
 
@@ -50,14 +44,11 @@ pub trait MulCapacity {
 */
 pub struct MulScrambledCapacity;
 
-
 /*
  * Return capacity of several files assuming the data is split as efficiently as possible between
  * every image as chunks.
 */
 pub struct MulFullCapacity;
-
-
 
 impl MulCapacity for MulScrambledCapacity {
     fn capacity(files: &Vec<String>) -> u64 {
@@ -73,8 +64,6 @@ impl MulCapacity for MulScrambledCapacity {
     }
 }
 
-
-
 impl MulCapacity for MulFullCapacity {
     fn capacity(files: &Vec<String>) -> u64 {
         let mut total_file_size: u64 = 0;
@@ -88,4 +77,3 @@ impl MulCapacity for MulFullCapacity {
         total_file_size
     }
 }
-
