@@ -7,14 +7,9 @@ use tempfile::TempDir;
 fn steghide_extract(photo_path: &str, output_path: &str, passphrase: &str) {
     let _output = std::process::Command::new("steghide")
         .arg("extract")
-        .arg("-sf")
-        .arg(photo_path)
-        .arg("-p")
-        .arg(passphrase)
-        .arg("-xf")
-        .arg(output_path)
-        .arg("-e")
-        .arg("none")
+        .args(["-sf", photo_path])
+        .args(["-p", passphrase])
+        .args(["-xf", output_path])
         .output()
         .expect("Command failed to start");
 
