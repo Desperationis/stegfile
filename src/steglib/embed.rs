@@ -10,17 +10,11 @@ const NUM_WORKERS: usize = 10;
 fn steghide_embed(photo_path: &str, embedded_path: &str, passphrase: &str) {
     let _output = std::process::Command::new("steghide")
         .arg("embed")
-        .arg("-cf")
-        .arg(photo_path)
-        .arg("-ef")
-        .arg(embedded_path)
-        .arg("-p")
-        .arg(passphrase)
-        .arg("-Z")
-        .arg("-N")
-        .arg("-K")
-        .arg("-e")
-        .arg("none")
+        .args(["-cf", photo_path])
+        .args(["-ef", embedded_path])
+        .args(["-p", passphrase])
+        .args(["-Z", "-N", "-K"])
+        .args(["-e", "none"])
         .output()
         .expect("Command failed to start");
 
