@@ -1,19 +1,25 @@
 use crate::steglib::split::Split;
 use crate::steglib::util::write_data_to_file;
+use std::process::Command;
 use std::fs::File;
 use std::io::Read;
 use tempfile::TempDir;
 
 fn steghide_extract(photo_path: &str, output_path: &str, passphrase: &str) {
-    let _output = std::process::Command::new("steghide")
-        .arg("extract")
+    let mut command = Command::new("steghide");
+    command.arg("extract")
         .args(["-sf", photo_path])
         .args(["-p", passphrase])
         .args(["-xf", output_path])
         .output()
         .expect("Command failed to start");
 
-    println!("Extracted from {}", photo_path);
+    let output = command.output().expect("Command failed to start");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    println!("stdout: {}", stdout);
+    println!("stderr: {}", stderr);
+    println!("Extracted {} into {}", photo_path, output_path);
 }
 
 /**

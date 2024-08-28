@@ -1,6 +1,7 @@
 use crate::steglib::capacity::one_file_capacity;
 use crate::steglib::split::Split;
 use crate::steglib::util::write_data_to_file;
+use std::process::Command;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use tempfile::TempDir;
@@ -8,18 +9,17 @@ use tempfile::TempDir;
 const NUM_WORKERS: usize = 10;
 
 fn steghide_embed(photo_path: &str, embedded_path: &str, passphrase: &str) {
-    let _output = std::process::Command::new("steghide")
-        .arg("embed")
+    let mut command = Command::new("steghide");
+    command.arg("embed")
         .args(["-cf", photo_path])
         .args(["-ef", embedded_path])
         .args(["-p", passphrase])
         .args(["-Z", "-N", "-K"])
-        .args(["-e", "none"])
-        .output()
-        .expect("Command failed to start");
+        .args(["-e", "none"]);
 
-    let stdout = String::from_utf8_lossy(&_output.stdout);
-    let stderr = String::from_utf8_lossy(&_output.stderr);
+    let output = command.output().expect("Command failed to start");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
     println!("stdout: {}", stdout);
     println!("stderr: {}", stderr);
     println!("Embedded {} into {}", embedded_path, photo_path);
