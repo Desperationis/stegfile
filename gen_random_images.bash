@@ -9,3 +9,6 @@ do
     # Run the wget command with the random seed
     wget "https://picsum.photos/seed/$SEED/200/300" -O "image_$i.jpg"
 done
+
+# Make png copies
+find . -name "*.jpg" -exec mogrify -format png {} \;
