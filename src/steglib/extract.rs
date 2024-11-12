@@ -1,26 +1,26 @@
-use crate::steglib::util::write_data_to_file;
 use crate::steglib::split::Split;
+use crate::steglib::util::write_data_to_file;
+use std::process::Command;
 use std::fs::File;
 use std::io::Read;
 use tempfile::TempDir;
 
 fn steghide_extract(photo_path: &str, output_path: &str, passphrase: &str) {
-    let _output = std::process::Command::new("steghide")
-            .arg("extract")
-            .arg("-sf")
-            .arg(photo_path)
-            .arg("-p")
-            .arg(passphrase)
-            .arg("-xf")
-            .arg(output_path)
-            .output()
-            .expect("Command failed to start");
+    let mut command = Command::new("steghide");
+    command.arg("extract")
+        .args(["-sf", photo_path])
+        .args(["-p", passphrase])
+        .args(["-xf", output_path])
+        .output()
+        .expect("Command failed to start");
 
-
-    println!("Extracted from {}", photo_path);
+    let output = command.output().expect("Command failed to start");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    println!("stdout: {}", stdout);
+    println!("stderr: {}", stderr);
+    println!("Extracted {} into {}", photo_path, output_path);
 }
-
-
 
 /**
  * Reconstructs singular file from a list of image_paths and a passphrase. It is VERY important
@@ -41,7 +41,6 @@ pub fn mul_extract<T: Split>(image_paths: &Vec<String>, passphrase: &str, output
         let file_path = temp_path.join(format!("tmp_{}", total_pieces));
         let file_path_str = file_path.to_str().unwrap();
         steghide_extract(image, file_path_str, passphrase);
-    
 
         let mut file = File::open(file_path_str).unwrap();
         let mut piece: Vec<u8> = Vec::new();
@@ -61,18 +60,14 @@ pub fn mul_extract<T: Split>(image_paths: &Vec<String>, passphrase: &str, output
             continue;
         }
 
-        let index = u64::from_be_bytes(
-            piece[0..8].try_into().expect("Slice with incorrect length")
-        ) as usize;
+        let index = u64::from_be_bytes(piece[0..8].try_into().expect("Slice with incorrect length"))
+            as usize;
 
         // Place the inner vector in the correct position in the sorted vector
         println!("This piece will go in index {}", index);
         sorted_pieces[index] = piece[8..].to_vec(); // Remove leading 8 bits
         total_size += piece.len() - 8;
     }
-
-
-
 
     println!("Size of all images is {}", total_size);
     println!("There are {} images to sift through", total_pieces);
@@ -81,9 +76,6 @@ pub fn mul_extract<T: Split>(image_paths: &Vec<String>, passphrase: &str, output
 
     let unified_piece: Vec<u8> = T::join_bins(&sorted_pieces);
 
-
     println!("Descrambled pieces into one file. Writing...");
     let _ = write_data_to_file(output_path, unified_piece);
 }
-
-

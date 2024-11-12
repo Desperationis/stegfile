@@ -1,7 +1,6 @@
 pub mod capacity;
-pub mod embed;
 pub mod cli;
+pub mod embed;
 pub mod extract;
-pub mod util;
 pub mod split;
-
+pub mod util;

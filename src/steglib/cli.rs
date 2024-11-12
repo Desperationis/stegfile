@@ -1,10 +1,9 @@
-use clap::{Subcommand, Parser, ValueEnum};
-
+use clap::{Parser, Subcommand, ValueEnum};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum SplitModeEnum {
     Scrambled,
-    Full
+    Full,
 }
 
 #[derive(Subcommand)]
@@ -30,6 +29,11 @@ pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
 
-    #[arg(long, short='m', default_value="full", long_help="How data is / was split between images")]
-    pub split_mode: SplitModeEnum
+    #[arg(
+        long,
+        short = 'm',
+        default_value = "full",
+        long_help = "How data is / was split between images"
+    )]
+    pub split_mode: SplitModeEnum,
 }
